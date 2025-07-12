@@ -4,3 +4,4 @@
 /ffmpeg-master-latest-win64-gpl.zip
 *.mp4
 /concat_list.txt
+/__pycache__
