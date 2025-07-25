@@ -17,7 +17,7 @@ class YouTubeCropperBackend:
         return os.path.abspath(relative_path)
 
     def fetch_resolutions(self, url):
-        yt_dlp_cmd = [sys.executable, "-m", "yt_dlp", "-F", url]
+        yt_dlp_cmd = [self.resource_path("yt-dlp.exe"), "-F", url]
         result = subprocess.run(yt_dlp_cmd, capture_output=True, text=True)
         lines = result.stdout.splitlines()
 
@@ -58,12 +58,36 @@ class YouTubeCropperBackend:
         if not format_id:
             raise Exception("Selected resolution format ID not found.")
 
+        # If neither trim nor crop, just download the full video and move it
+        if not do_trim and not do_crop:
+            temp_output = os.path.join(output_dir, f"{base_name}.mp4")
+            yt_dlp_cmd = [
+                self.resource_path("yt-dlp.exe"),
+                "-f", format_id,
+                "-o", "temp.%(ext)s",
+                url
+            ]
+            try:
+                status_callback("Downloading full video...")
+                subprocess.run(yt_dlp_cmd, check=True)
+                input_file = next((f"temp.{ext}" for ext in ['webm', 'mp4', 'mkv'] if os.path.exists(f"temp.{ext}")), None)
+                if not input_file:
+                    raise FileNotFoundError("Download failed.")
+                shutil.move(input_file, temp_output)
+                if input_file and os.path.exists(input_file):
+                    os.remove(input_file)
+                return temp_output
+            except subprocess.CalledProcessError as e:
+                raise Exception(f"yt-dlp Error: {e}")
+            except Exception as e:
+                raise Exception(str(e))
+
         output_files = []
 
         for i, (start, end) in enumerate(segment_list):
             temp_output = os.path.join(output_dir, f"{base_name}_{i+1}.mp4")
             yt_dlp_cmd = [
-                sys.executable, "-m", "yt_dlp",
+                self.resource_path("yt-dlp.exe"),
                 "-f", format_id,
                 "--download-sections", f"*{start}-{end}",
                 "-o", "temp.%(ext)s",
