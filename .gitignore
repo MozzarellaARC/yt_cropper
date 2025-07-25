@@ -5,3 +5,7 @@
 *.mp4
 /concat_list.txt
 /__pycache__
+/build/yt_cropper
+/.venv
+/dist
+/yt-dlp.exe
